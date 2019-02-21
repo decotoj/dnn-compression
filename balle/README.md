@@ -10,6 +10,7 @@ Example: Compress an Image
 
 
 Example: Decompress an Image 
+
 'python bls2017.py decompress compressed.bin reconstructed.png'
 
 
