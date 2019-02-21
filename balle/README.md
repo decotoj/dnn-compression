@@ -3,18 +3,17 @@ by jonycgn (see: https://github.com/tensorflow/compression)
 
 Use:
 
-Example: Compress an Image from Terminal
+Example: Compress an Image 
 
 'python bls2017.py compress example.png compressed.bin'
 
 
 
-Example: Decompress an Image from Terminal
-
+Example: Decompress an Image 
 'python bls2017.py decompress compressed.bin reconstructed.png'
 
 
 
 Example: Train a model
 
-'python 
+'python bls2017.py -v --train_glob="images/*.png" train'
