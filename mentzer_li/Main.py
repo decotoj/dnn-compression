@@ -17,6 +17,42 @@ from keras.utils import plot_model
 from keras.initializers import glorot_uniform
 import keras.backend as K
 
+
+#quantization
+def quantizer(X_encode, centers):
+	#probably need to adjust shape of X_encode in some capacity
+	dist = tf.square(tf.abs(X_encode - centers))
+	phi_hard = tf.nn.softmax(-1e7 * dist, dim=-1)
+	symbols_hard = tf.argmax(phi_hard, axis=-1)
+	phi_hard = tf.one_hot(symbols_hard, depth=num_centers, axis=-1, dtype=tf.float32)
+	matmul_innerproduct = phi_hard * centers  # (B, C, m, L)
+	return tf.reduce_sum(matmul_innerproduct, axis=3)  # (B, C, m)
+
+#adapted from github, not sure how to modify
+def importance_map(bottleneck):
+	assert bottleneck.shape.ndims == 4, bottleneck.shape
+	C = int(bottleneck.shape[1]) - 1  # -1 because first channel is heatmap
+	heatmap_channel = Input(bottleneck[:, 0, :, :]) # I assume you need?
+	heatmap_channel = bottleneck[:, 0, :, :]  # NHW
+		#heatmap2D = tf.nn.sigmoid(heatmap_channel) * C  # NHW
+
+	heatmap2D = Activation('sigmoid')(heatmap_channel)*C
+	c = tf.range(C, dtype=tf.float32)  # C
+	# reshape heatmap2D for broadcasting
+	heatmap = tf.expand_dims(heatmap2D, 1)  # N1HW
+	# reshape c for broadcasting
+	c = tf.reshape(c, (C, 1, 1))  # C11
+	# construct heatmap3D
+	# if heatmap[x, y] == C, then heatmap[x, y, c] == 1 \forall c \in {0, ..., C-1}
+	heatmap3D = tf.maximum(tf.minimum(heatmap - c, 1), 0, name='heatmap3D')  # NCHW
+	return heatmap3D
+
+#adapted from github, not sure how to modify
+def mask_with_importance(bottleneck, heatmap3D):
+	bottleneck_without_heatmap = bottleneck[:, 1:, ...]
+	return heatmap3D * bottleneck_without_heatmap
+
+
 def residual_block(X, f, filter_size, stage):
 	conv_name_base = 'res' + str(stage)
 	bn_name_base = 'bn' + str(stage)
@@ -50,6 +86,7 @@ def encoder(x, code_numbers):
 	
 	#ENCODING
 	X_input = Input(shape = x)
+	centers = Input(shape = (code_numbers,), kernel_initializer = RandomUniform(min_val=.05, max_val=.5, seed=None))
 	
 	# Stage 1
 	X = Conv2D(64, (5, 5), strides = (2, 2), padding = 'same', kernel_initializer = glorot_uniform(seed=None))(X_input)
@@ -79,8 +116,8 @@ def encoder(x, code_numbers):
 	X = Conv2D(code_numbers, (5,5), strides = (2,2), padding = 'same', kernel_initializer = glorot_uniform(seed=None))(X)
 
 	#this gets fed into our importance map
-	importance_map = importance_map(X)
-	X_encode = mask_with_importance(X,importance_map)
+	importance = importance_map(X)
+	X_encode = mask_with_importance(X,importance)
 
 	#now we can quantize the masked encoding
 
@@ -93,39 +130,6 @@ def encoder(x, code_numbers):
 	model = Model(inputs = X_input, outputs = X, name='encoder')
 	return model
 
-#quantization
-def quantizer(X_encode, centers):
-	#probably need to adjust shape of X_encode in some capacity
-	dist = tf.square(tf.abs(X_encode - centers))
-	phi_hard = tf.nn.softmax(-1e7 * dist, dim=-1)
-	symbols_hard = tf.argmax(phi_hard, axis=-1)
-	phi_hard = tf.one_hot(symbols_hard, depth=num_centers, axis=-1, dtype=tf.float32)
-	matmul_innerproduct = phi_hard * centers  # (B, C, m, L)
-    return tf.reduce_sum(matmul_innerproduct, axis=3)  # (B, C, m)
-
-#adapted from github, not sure how to modify
-def importance_map(bottleneck):
-	assert bottleneck.shape.ndims == 4, bottleneck.shape
-	C = int(bottleneck.shape[1]) - 1  # -1 because first channel is heatmap
-	heatmap_channel = Input(bottleneck[:, 0, :, :]) # I assume you need?
-	heatmap_channel = bottleneck[:, 0, :, :]  # NHW
-		#heatmap2D = tf.nn.sigmoid(heatmap_channel) * C  # NHW
-
-	heatmap2D = Activation('sigmoid')(heatmap_channel)*C
-	c = tf.range(C, dtype=tf.float32)  # C
-	# reshape heatmap2D for broadcasting
-	heatmap = tf.expand_dims(heatmap2D, 1)  # N1HW
-	# reshape c for broadcasting
-	c = tf.reshape(c, (C, 1, 1))  # C11
-	# construct heatmap3D
-	# if heatmap[x, y] == C, then heatmap[x, y, c] == 1 \forall c \in {0, ..., C-1}
-	heatmap3D = tf.maximum(tf.minimum(heatmap - c, 1), 0, name='heatmap3D')  # NCHW
-	return heatmap3D
-
-#adapted from github, not sure how to modify
-def mask_with_importance(bottleneck, heatmap3D):
-	bottleneck_without_heatmap = bottleneck[:, 1:, ...]
-	return heatmap3D * bottleneck_without_heatmap
 
 def decode(x):
 
