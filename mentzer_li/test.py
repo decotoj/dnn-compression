@@ -32,11 +32,8 @@ def save_image(filename, image):
   def msssmm_loss(x_input, x_decode):
   	return tf.image.ssim_multiscale (x_input, x_decode)
 
-  def center_loss(x_encode, centers):
-  	
-
-
-  	return tf.image.ssim_multiscale (x_input, x_decode)
+  def center_loss(centers):
+  	return tf.nn.l2_loss(centers)
   
 
 #def customLoss():
@@ -49,13 +46,13 @@ def train():
 	#MAY NEED THE BELOW
 	#tf_sess = tf.Session()
 	#K.set_session(tf_sess)
-
+	""""
 	logFile = str(round(time.time(),0)) + '_train_log.txt'
 	with open(logFile, 'w') as f:
 		for key,value in vars(args).items():
 			f.write(key + '=' + str(value) + '\n')
 		f.write('\n')
-	tf.logging.set_verbosity(tf.logging.INFO)
+	tf.logging.set_verbosity(tf.logging.INFO)"""
 
 	train_files = str(glob.glob(args.train_glob))
 
