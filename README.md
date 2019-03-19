@@ -1,9 +1,9 @@
-Much of this code originally adapted from image compression algorithm by Balle et al as implemented
-by jonycgn (see: https://github.com/tensorflow/compression).  
+Much of this code was originally adapted from image compression algorithm by Balle et al as implemented
+by jonycgn (see: https://github.com/tensorflow/compression).  New functions were added and existing ones modified as necessary within the 'balle' directory.
 
-The most substantially modified elements, including much new structure for the network, are contained in the 'li combo'directory.  
+The most substantially modified elements, including much new structure for the network, are contained in the 'li combo'directory for reference.  
 
-Modified Mentzer code is also included for reference
+The modified Mentzer code is also included for reference
 
 Use:
 
