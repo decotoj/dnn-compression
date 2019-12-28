@@ -41,7 +41,7 @@ if AWS == 1:
   LOG_STEPS = 1000 #Number of Steps Between Each Training Log Print (1000 on AWS, 10 on local machine)
   BATCH_SIZE = 32  # Batch size in training
 else:
-  CHECKPOINT_SAVE = 60  # Number of seconds between checkpoint saves (60 on AWS, 1800 on local machine)
+  CHECKPOINT_SAVE = 120  # Number of seconds between checkpoint saves (60 on AWS, 1800 on local machine)
   LOG_STEPS = 10 #Number of Steps Between Each Training Log Print (1000 on AWS, 10 on local machine)
   BATCH_SIZE = 2  # Batch size in training
 
